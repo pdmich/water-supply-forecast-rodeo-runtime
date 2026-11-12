@@ -8,7 +8,7 @@ authors = [{ name = "DrivenData", email = "info@drivendata.org" }]
 license = { file = "LICENSE" }
 classifiers = ["License :: OSI Approved :: MIT License"]
 dynamic = ["version", "description"]
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
   "dataretrieval>=1.4.0",
   "geopandas",
