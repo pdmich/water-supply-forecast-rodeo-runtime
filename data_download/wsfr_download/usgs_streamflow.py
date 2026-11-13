@@ -52,7 +52,9 @@ def get_daily_values_for_usgs_site(
         fy_end_day (int): Day component of end date.
 
     Returns:
-        pd.DataFrame: dataframe of retrieved data
+        pd.DataFrame: datetime-indexed data with site_no, 00060_Mean, and 00060_Mean_cd.
+            site_no retains the requested gauge ID, including leading zeros. 00060_Mean_cd
+            contains comma-separated API approval status and qualifiers, or NA if absent.
     """
     start_date = f"{forecast_year - 1}-{fy_start_month:02}-{fy_start_day:02}"
     # end date is exclusive; offset to day before and convert to date string.
@@ -65,8 +67,22 @@ def get_daily_values_for_usgs_site(
         time=f"{start_date}/{end_date}",
     )
     df = df.rename(columns={"time": "datetime", "value": MEAN_DISCHARGE_RAW_COL})
+    df["site_no"] = usgs_id
+    metadata = df.reindex(columns=["approval_status", "qualifier"])
+    approval = metadata["approval_status"].astype("string")
+    qualifiers = metadata["qualifier"].map(
+        lambda value: ",".join(value) if isinstance(value, list) else value
+    ).astype("string")
+    df[f"{MEAN_DISCHARGE_RAW_COL}_cd"] = (
+        approval.fillna("")
+        .str.cat(qualifiers.fillna(""), sep=",")
+        .str.strip(",")
+        .replace("", pd.NA)
+    )
     df["datetime"] = pd.to_datetime(df["datetime"])
-    return df.set_index("datetime")[[MEAN_DISCHARGE_RAW_COL]]
+    return df.set_index("datetime")[
+        ["site_no", MEAN_DISCHARGE_RAW_COL, f"{MEAN_DISCHARGE_RAW_COL}_cd"]
+    ]
 
 
 def has_discharge_col(df: pd.DataFrame) -> bool:
